@@ -7,6 +7,7 @@ use App\Repository\PlatformRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: PlatformRepository::class)]
 class Platform
@@ -16,18 +17,22 @@ class Platform
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?string $slug = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $password = null;
 
     #[ORM\OneToMany(targetEntity: Customer::class, mappedBy: 'platform', orphanRemoval: true)]
+    #[Groups(['getPlatforms'])]
     private Collection $customers;
 
     public function __construct()

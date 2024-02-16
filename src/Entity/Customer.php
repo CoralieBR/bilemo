@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Entity\Trait\DateTrait;
 use App\Repository\CustomerRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
 class Customer
@@ -14,28 +15,36 @@ class Customer
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?string $firstName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?string $email = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?string $postCode = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?string $gender = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['getCustomers', 'getPlatforms'])]
     private ?int $age = null;
 
     #[ORM\ManyToOne(inversedBy: 'customers')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
+    #[Groups(['getCustomers'])]
     private ?Platform $platform = null;
 
     public function getId(): ?int
