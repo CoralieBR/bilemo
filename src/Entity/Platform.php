@@ -17,22 +17,21 @@ class Platform
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['getCustomers', 'getPlatforms'])]
+    #[Groups(['getCustomers'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['getCustomers', 'getPlatforms'])]
+    #[Groups(['getCustomers'])]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['getCustomers', 'getPlatforms'])]
+    #[Groups(['getCustomers'])]
     private ?string $slug = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $password = null;
 
     #[ORM\OneToMany(targetEntity: Customer::class, mappedBy: 'platform', orphanRemoval: true)]
-    #[Groups(['getPlatforms'])]
     private Collection $customers;
 
     public function __construct()
