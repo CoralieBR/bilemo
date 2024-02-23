@@ -10,7 +10,9 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -69,18 +71,27 @@ class CustomerController extends AbstractController
     }
 
     #[Route('api/customers/{id}', name:'updateCustomer', methods: ['PUT'])]
-    public function updateCustomer(Customer $currentCustomer, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository): JsonResponse
+    public function updateCustomer(Customer $currentCustomer, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository, ValidatorInterface $validator): JsonResponse
     {
         $updatedCustomer = $serializer->deserialize($request->getCOntent(), Customer::class, 'json', [AbstractNormalizer::OBJECT_TO_POPULATE => $currentCustomer]);
-        
-        $content = $request->toArray();
+
+        $errors = $validator->validate($updatedCustomer);
+        if ($errors->count() > 0) {
+            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
         
         $updatedCustomer->setUpdatedAt(new \DateTimeImmutable());
+        
+        $content = $request->toArray();
         $idPlatform = $content['idPlatform'] ?? -1;
         $updatedCustomer->setPlatform($platformRepository->find($idPlatform));
 
         $em->flush();
 
-        return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
+        $jsonCustomer = $serializer->serialize($updatedCustomer, 'json', ['groups' => 'getCustomers']);
+
+        $location = $urlGenerator->generate('detailCustomer', ['id' => $updatedCustomer->getId()], UrlGenerator::ABSOLUTE_URL);
+
+        return new JsonResponse($jsonCustomer, Response::HTTP_OK, ['Location' => $location], true);
     }
 }
