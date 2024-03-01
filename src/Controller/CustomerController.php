@@ -14,6 +14,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class CustomerController extends AbstractController
 {
@@ -43,11 +44,14 @@ class CustomerController extends AbstractController
     }
 
     #[Route('api/customers', name:'createCustomer', methods: ['POST'])]
-    public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository): JsonResponse
+    public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository, ValidatorInterface $validator): JsonResponse
     {
-        $customer = $serializer->deserialize($request->getCOntent(), Customer::class, 'json');
-        $customer->setCreatedAt(new \DateTimeImmutable());
-        $customer->setUpdatedAt(new \DateTimeImmutable());
+        $customer = $serializer->deserialize($request->getContent(), Customer::class, 'json');
+
+        $errors = $validator->validate($customer);
+        if ($errors->count() > 0) {
+            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
 
         $content = $request->toArray();
 
@@ -75,7 +79,6 @@ class CustomerController extends AbstractController
         $idPlatform = $content['idPlatform'] ?? -1;
         $updatedCustomer->setPlatform($platformRepository->find($idPlatform));
 
-        $em->persist($updatedCustomer);
         $em->flush();
 
         return new JsonResponse(null, JsonResponse::HTTP_NO_CONTENT);
