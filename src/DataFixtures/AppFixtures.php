@@ -7,9 +7,17 @@ use App\Entity\Item;
 use App\Entity\Platform;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class AppFixtures extends Fixture
 {
+    private $userPasswordHasher;
+
+    public function __construct(UserPasswordHasherInterface $userPasswordHasher)
+    {
+        $this->userPasswordHasher = $userPasswordHasher;
+    }
+
     public function load(ObjectManager $manager): void
     {
         for ($i=0; $i < 5; $i++) { 
@@ -18,6 +26,13 @@ class AppFixtures extends Fixture
             $platform->setSlug('platforme-n-' . $i);
             $platform->setCreatedAt(new \DateTimeImmutable());
             $platform->setUpdatedAt(new \DateTimeImmutable());
+            $platform->setEmail('platform-' . $i . '@mail.com');
+            if ($i == 1) {
+                $platform->setRoles(["ROLE_ADMIN"]);
+            } else {
+                $platform->setRoles(['ROLE_USER']);
+            }
+            $platform->setPassword($this->userPasswordHasher->hashPassword($platform, 'password'));
 
             $manager->persist($platform);
 
