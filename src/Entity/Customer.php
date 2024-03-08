@@ -5,7 +5,8 @@ namespace App\Entity;
 use App\Entity\Trait\DateTrait;
 use App\Repository\CustomerRepository;
 use Doctrine\ORM\Mapping as ORM;
-
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: CustomerRepository::class)]
 class Customer
 {
@@ -14,29 +15,49 @@ class Customer
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(['getCustomers'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['getCustomers'])]
+    #[Assert\Length(max: 255, maxMessage: 'Le prénom ne doit pas excéder {{ limit }} caractères de long.')]
     private ?string $firstName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['getCustomers'])]
+    #[Assert\Length(max: 255, maxMessage: 'Le nom ne doit pas excéder {{ limit }} caractères de long.')]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
+    #[Groups(['getCustomers'])]
+    #[Assert\NotBlank(message: "L'email est obligatoire.")]
+    #[Assert\Email(message: "Le format de l'email n'est pas valide.")]
+    #[Assert\Length(max: 255, maxMessage: "L'email ne doit pas excéder {{ limit }} caractères de long.")]
     private ?string $email = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Groups(['getCustomers'])]
+    #[Assert\Length(max: 10, maxMessage: 'Le code postal ne doit pas excéder {{ limit }} caractères de long.')]
     private ?string $postCode = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['getCustomers'])]
     private ?string $gender = null;
 
     #[ORM\Column(nullable: true)]
+    #[Groups(['getCustomers'])]
     private ?int $age = null;
 
     #[ORM\ManyToOne(inversedBy: 'customers')]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(['getCustomers'])]
     private ?Platform $platform = null;
+
+    public function __construct()
+    {
+        $this->createdAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
+    }
 
     public function getId(): ?int
     {
