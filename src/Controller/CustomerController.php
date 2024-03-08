@@ -3,17 +3,13 @@
 namespace App\Controller;
 
 use App\Entity\Customer;
-use App\Repository\CustomerRepository;
-use App\Repository\PlatformRepository;
+use App\Repository\{CustomerRepository, PlatformRepository};
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpFoundation\{JsonResponse, Request, Response};
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Routing\Generator\UrlGenerator;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\Generator\{UrlGenerator, UrlGeneratorInterface};
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -21,6 +17,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 class CustomerController extends AbstractController
 {
     #[Route('/api/customers', name: 'customer', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour consulter les clients.')]
     public function getAllCustomers(CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
     {
         $customerList = $customerRepository->findAll();
@@ -30,6 +27,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/api/customers/{id}', name: 'detailCustomer', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour consulter ce client.')]
     public function getDetailCustomer(Customer $customer, SerializerInterface $serializer): JsonResponse
     {
         $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' =>'getCustomers']);
@@ -37,6 +35,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/api/customers/{id}', name: 'deleteCustomer', methods: ['DELETE'])]
+    #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour supprimer ce client.')]
     public function deleteCustomer(Customer $customer, EntityManagerInterface $em): JsonResponse
     {
         $em->remove($customer);
@@ -46,6 +45,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('api/customers', name:'createCustomer', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour ajouter un client.')]
     public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository, ValidatorInterface $validator): JsonResponse
     {
         $customer = $serializer->deserialize($request->getContent(), Customer::class, 'json');
@@ -71,6 +71,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('api/customers/{id}', name:'updateCustomer', methods: ['PUT'])]
+    #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour modifier ce client.')]
     public function updateCustomer(Customer $currentCustomer, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository, ValidatorInterface $validator): JsonResponse
     {
         $updatedCustomer = $serializer->deserialize($request->getCOntent(), Customer::class, 'json', [AbstractNormalizer::OBJECT_TO_POPULATE => $currentCustomer]);
