@@ -14,7 +14,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 class ItemController extends AbstractController
 {
     #[Route('/api/items', name: 'item', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour consulter les produits.')]
+    #[IsGranted('IS_AUTHENTICATED_FULLY', message: 'Vous n\'avez pas les droits suffisants pour consulter les produits.')]
     public function getAllItems(ItemRepository $itemRepository, SerializerInterface $serializer): JsonResponse
     {
         $itemList = $itemRepository->findAll();
@@ -24,7 +24,7 @@ class ItemController extends AbstractController
     }
 
     #[Route('/api/items/{id}', name: 'detailItem', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN', message: 'Vous n\'avez pas les droits suffisants pour consulter ce produit.')]
+    #[IsGranted('IS_AUTHENTICATED_FULLY', message: 'Vous n\'avez pas les droits suffisants pour consulter ce produit.')]
     public function getDetailItem(Item $item, SerializerInterface $serializer): JsonResponse
     {
         $jsonItem = $serializer->serialize($item, 'json');
