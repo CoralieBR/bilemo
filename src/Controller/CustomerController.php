@@ -37,7 +37,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/api/customers/{id}', name: 'detailCustomer', methods: ['GET'])]
-    #[IsGranted('view', 'customer')]
+    #[IsGranted('view', 'customer', 'Client.e non trouvé.e', 404)]
     public function getDetailCustomer(Customer $customer, SerializerInterface $serializer): JsonResponse
     {
         $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' =>'getCustomers']);
@@ -45,7 +45,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('/api/customers/{id}', name: 'deleteCustomer', methods: ['DELETE'])]
-    #[IsGranted('edit', 'customer')]
+    #[IsGranted('access', 'customer', 'Client.e non trouvé.e', 404)]
     public function deleteCustomer(Customer $customer, EntityManagerInterface $em, TagAwareCacheInterface $cache): JsonResponse
     {
         $cache->invalidateTags(['customersCache']);
@@ -57,7 +57,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('api/customers', name:'createCustomer', methods: ['POST'])]
-    #[IsGranted('edit', 'customer')]
+    #[IsGranted('access', 'customer', 'Client.e non trouvé.e', 404)]
     public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache): JsonResponse
     {
         $cache->invalidateTags(['customersCache']);
@@ -82,7 +82,7 @@ class CustomerController extends AbstractController
     }
 
     #[Route('api/customers/{id}', name:'updateCustomer', methods: ['PUT'])]
-    #[IsGranted('edit', 'customer')]
+    #[IsGranted('access', 'customer', 'Client.e non trouvé.e', 404)]
     public function updateCustomer(Customer $currentCustomer, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository, ValidatorInterface $validator, TagAwareCacheInterface $cache): JsonResponse
     {
         $cache->invalidateTags(['customersCache']);
