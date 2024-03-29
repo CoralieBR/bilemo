@@ -13,15 +13,25 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\Cache\{ItemInterface, TagAwareCacheInterface};
 
 class CustomerController extends AbstractController
 {
     #[Route('/api/customers', name: 'customer', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY', message: 'Vous n\'avez pas les droits suffisants pour consulter les clients.')]
-    public function getAllCustomers(CustomerRepository $customerRepository, SerializerInterface $serializer): JsonResponse
+    public function getAllCustomers(CustomerRepository $customerRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache): JsonResponse
     {
-        $customerList = $customerRepository->findBy(['platform' => $this->getUser()]);
-        $jsonCustomerList = $serializer->serialize($customerList, 'json', ['groups' =>'getCustomers']);
+        $page = $request->get('page', 1);
+        $limit = $request->get('limit', 3);
+        $platform = $this->getUser();
+
+        $idCache = 'getPlatform' . $platform->getId() . 'Customers-' . $page . '-' . $limit;
+
+        $jsonCustomerList = $cache->get($idCache, function (ItemInterface $item) use ($customerRepository, $page, $limit, $serializer) {
+            $item->tag('customersCache');
+            $customerList = $customerRepository->findCustomersWithPagination($this->getUser(), $page, $limit);
+            return $serializer->serialize($customerList, 'json', ['groups' =>'getCustomers']);
+        });
 
         return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
     }
@@ -36,8 +46,10 @@ class CustomerController extends AbstractController
 
     #[Route('/api/customers/{id}', name: 'deleteCustomer', methods: ['DELETE'])]
     #[IsGranted('edit', 'customer')]
-    public function deleteCustomer(Customer $customer, EntityManagerInterface $em): JsonResponse
+    public function deleteCustomer(Customer $customer, EntityManagerInterface $em, TagAwareCacheInterface $cache): JsonResponse
     {
+        $cache->invalidateTags(['customersCache']);
+
         $em->remove($customer);
         $em->flush();
 
@@ -46,8 +58,10 @@ class CustomerController extends AbstractController
 
     #[Route('api/customers', name:'createCustomer', methods: ['POST'])]
     #[IsGranted('edit', 'customer')]
-    public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository, ValidatorInterface $validator): JsonResponse
+    public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache): JsonResponse
     {
+        $cache->invalidateTags(['customersCache']);
+
         $customer = $serializer->deserialize($request->getContent(), Customer::class, 'json');
 
         $errors = $validator->validate($customer);
@@ -69,8 +83,10 @@ class CustomerController extends AbstractController
 
     #[Route('api/customers/{id}', name:'updateCustomer', methods: ['PUT'])]
     #[IsGranted('edit', 'customer')]
-    public function updateCustomer(Customer $currentCustomer, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository, ValidatorInterface $validator): JsonResponse
+    public function updateCustomer(Customer $currentCustomer, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository, ValidatorInterface $validator, TagAwareCacheInterface $cache): JsonResponse
     {
+        $cache->invalidateTags(['customersCache']);
+
         $updatedCustomer = $serializer->deserialize($request->getCOntent(), Customer::class, 'json', [AbstractNormalizer::OBJECT_TO_POPULATE => $currentCustomer]);
 
         $errors = $validator->validate($updatedCustomer);

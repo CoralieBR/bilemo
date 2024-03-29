@@ -5,20 +5,28 @@ namespace App\Controller;
 use App\Entity\Item;
 use App\Repository\ItemRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\{JsonResponse, Request, Response};
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Contracts\Cache\{ItemInterface, TagAwareCacheInterface};
 
 class ItemController extends AbstractController
 {
     #[Route('/api/items', name: 'item', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY', message: 'Vous n\'avez pas les droits suffisants pour consulter les produits.')]
-    public function getAllItems(ItemRepository $itemRepository, SerializerInterface $serializer): JsonResponse
+    public function getAllItems(ItemRepository $itemRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache): JsonResponse
     {
-        $itemList = $itemRepository->findAll();
-        $jsonItemList = $serializer->serialize($itemList, 'json');
+        $page = $request->get('page', 1);
+        $limit = $request->get('limit', 3);
+
+        $idCache = 'getAllItems-' . $page . '-' . $limit;
+
+        $jsonItemList = $cache->get($idCache, function (ItemInterface $cachedItem) use ($itemRepository, $page, $limit, $serializer) {
+            $cachedItem->tag('itemsCache');
+            $itemList = $itemRepository->findAllWithPagination($page, $limit);
+            return $serializer->serialize($itemList, 'json');
+        });
 
         return new JsonResponse($jsonItemList, Response::HTTP_OK, [], true);
     }
