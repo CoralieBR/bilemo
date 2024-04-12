@@ -13,7 +13,7 @@ use Symfony\Contracts\Cache\{ItemInterface, TagAwareCacheInterface};
 
 class ItemController extends AbstractController
 {
-    #[Route('/api/items', name: 'item', methods: ['GET'])]
+    #[Route('/api/items', name: 'item_show_all', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY', message: 'Vous n\'avez pas les droits suffisants pour consulter les produits.')]
     public function getAllItems(ItemRepository $itemRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache): JsonResponse
     {
@@ -31,7 +31,7 @@ class ItemController extends AbstractController
         return new JsonResponse($jsonItemList, Response::HTTP_OK, [], true);
     }
 
-    #[Route('/api/items/{id}', name: 'detailItem', methods: ['GET'])]
+    #[Route('/api/items/{id}', name: 'item_show', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY', message: 'Vous n\'avez pas les droits suffisants pour consulter ce produit.')]
     public function getDetailItem(Item $item, SerializerInterface $serializer): JsonResponse
     {

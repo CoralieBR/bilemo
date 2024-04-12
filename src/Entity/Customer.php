@@ -50,7 +50,6 @@ class Customer
 
     #[ORM\ManyToOne(inversedBy: 'customers')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['getCustomers'])]
     private ?Platform $platform = null;
 
     public function __construct()
