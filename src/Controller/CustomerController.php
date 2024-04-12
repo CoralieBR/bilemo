@@ -36,6 +36,7 @@ class CustomerController extends AbstractController
         $jsonCustomerList = $cache->get($idCache, function (ItemInterface $item) use ($customerRepository, $page, $limit, $serializer, $platform) {
             $item->tag('customersCache');
             $customerList = $customerRepository->findCustomersWithPagination($platform, $page, $limit);
+
             if ($page > 1) {
                 $customerList['_links']['previous']['href'] = $this->router->generate('customer_show_all', [
                     'page' => $page - 1,
@@ -46,6 +47,7 @@ class CustomerController extends AbstractController
                 'page' => $page + 1,
                 'limit' => $limit,
             ], UrlGeneratorInterface::ABSOLUTE_URL);
+
             return $serializer->serialize($customerList, 'json', ['groups' =>'getCustomers']);  
         });
 
