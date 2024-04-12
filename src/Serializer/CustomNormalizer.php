@@ -1,8 +1,7 @@
 <?php
 namespace App\Serializer;
 
-use App\Entity\Customer;
-use App\Entity\Item;
+use App\Entity\{Customer, Item};
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
