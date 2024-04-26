@@ -17,81 +17,107 @@ use Symfony\Contracts\Cache\{ItemInterface, TagAwareCacheInterface};
 
 class CustomerController extends AbstractController
 {
-    #[Route('/api/customers', name: 'customer', methods: ['GET'])]
+    
+    public function __construct(
+        private EntityManagerInterface $em,
+        private SerializerInterface $serializer,
+        private TagAwareCacheInterface $cache,
+        private UrlGeneratorInterface $router,
+        private ValidatorInterface $validator,
+    ) {
+    }
+
+    #[Route('/api/customers', name: 'customer_show_all', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY', message: 'Vous n\'avez pas les droits suffisants pour consulter les clients.')]
-    public function getAllCustomers(CustomerRepository $customerRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache): JsonResponse
+    public function getAllCustomers(CustomerRepository $customerRepository, Request $request): JsonResponse
     {
-        $page = $request->get('page', 1);
-        $limit = $request->get('limit', 3);
+        $page = (int) $request->get('page', 1);
+        $limit = (int) $request->get('limit', 3);
         $platform = $this->getUser();
 
         $idCache = 'getPlatform' . $platform->getId() . 'Customers-' . $page . '-' . $limit;
 
-        $jsonCustomerList = $cache->get($idCache, function (ItemInterface $item) use ($customerRepository, $page, $limit, $serializer) {
+        $jsonCustomerList = $this->cache->get($idCache, function (ItemInterface $item) use ($customerRepository, $page, $limit, $platform) {
             $item->tag('customersCache');
-            $customerList = $customerRepository->findCustomersWithPagination($this->getUser(), $page, $limit);
-            return $serializer->serialize($customerList, 'json', ['groups' =>'getCustomers']);
+            $customerList = $customerRepository->findCustomersWithPagination($platform, $page, $limit);
+
+            if ($page > 1) {
+                $customerList['_links']['previous']['href'] = $this->router->generate('customer_show_all', [
+                    'page' => $page - 1,
+                    'limit' => $limit,
+                ], UrlGeneratorInterface::ABSOLUTE_URL);
+            }
+            $customerList['_links']['next']['href'] = $this->router->generate('customer_show_all', [
+                'page' => $page + 1,
+                'limit' => $limit,
+            ], UrlGeneratorInterface::ABSOLUTE_URL);
+
+            return $this->serializer->serialize($customerList, 'json', ['groups' =>'getCustomers']);  
         });
 
         return new JsonResponse($jsonCustomerList, Response::HTTP_OK, [], true);
     }
 
-    #[Route('/api/customers/{id}', name: 'detailCustomer', methods: ['GET'])]
-    #[IsGranted('view', 'customer')]
-    public function getDetailCustomer(Customer $customer, SerializerInterface $serializer): JsonResponse
+    #[Route('/api/customers/{id}', name: 'customer_show', methods: ['GET'])]
+    #[IsGranted('view', 'customer', 'Client.e non trouvé.e', 404)]
+    public function getDetailCustomer(Customer $customer): JsonResponse
     {
-        $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' =>'getCustomers']);
+        $jsonCustomer = $this->serializer->serialize($customer, 'json', ['groups' =>'getCustomers']);
         return new JsonResponse($jsonCustomer, Response::HTTP_OK, ['accept' => 'json'], true);
     }
 
-    #[Route('/api/customers/{id}', name: 'deleteCustomer', methods: ['DELETE'])]
-    #[IsGranted('edit', 'customer')]
-    public function deleteCustomer(Customer $customer, EntityManagerInterface $em, TagAwareCacheInterface $cache): JsonResponse
+    #[Route('/api/customers/{id}', name: 'customer_delete', methods: ['DELETE'])]
+    #[IsGranted('access', 'customer', 'Client.e non trouvé.e', 404)]
+    public function deleteCustomer(Customer $customer): JsonResponse
     {
-        $cache->invalidateTags(['customersCache']);
+        $this->cache->invalidateTags(['customersCache']);
 
-        $em->remove($customer);
-        $em->flush();
+        $this->em->remove($customer);
+        $this->em->flush();
 
         return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 
-    #[Route('api/customers', name:'createCustomer', methods: ['POST'])]
-    #[IsGranted('edit', 'customer')]
-    public function createCustomer(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, ValidatorInterface $validator, TagAwareCacheInterface $cache): JsonResponse
+    #[Route('api/customers', name:'customer_create', methods: ['POST'])]
+    #[IsGranted('access', 'customer', 'Client.e non trouvé.e', 404)]
+    public function createCustomer(Request $request): JsonResponse
     {
-        $cache->invalidateTags(['customersCache']);
+        $this->cache->invalidateTags(['customersCache']);
 
-        $customer = $serializer->deserialize($request->getContent(), Customer::class, 'json');
+        $customer = $this->serializer->deserialize($request->getContent(), Customer::class, 'json');
 
-        $errors = $validator->validate($customer);
+        $errors = $this->validator->validate($customer);
         if ($errors->count() > 0) {
-            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+            return new JsonResponse($this->serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
         }
 
         $customer->setPlatform($this->getUser());
 
-        $em->persist($customer);
-        $em->flush();
+        $this->em->persist($customer);
+        $this->em->flush();
 
-        $jsonCustomer = $serializer->serialize($customer, 'json', ['groups' => 'getCustomers']);
+        $jsonCustomer = $this->serializer->serialize($customer, 'json', ['groups' => 'getCustomers']);
 
-        $location = $urlGenerator->generate('detailCustomer', ['id' => $customer->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
+        $location = $this->router->generate('detailCustomer', ['id' => $customer->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
 
         return new JsonResponse($jsonCustomer, Response::HTTP_CREATED, ['Location' => $location], true);
     }
 
-    #[Route('api/customers/{id}', name:'updateCustomer', methods: ['PUT'])]
-    #[IsGranted('edit', 'customer')]
-    public function updateCustomer(Customer $currentCustomer, Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, PlatformRepository $platformRepository, ValidatorInterface $validator, TagAwareCacheInterface $cache): JsonResponse
+    #[Route('api/customers/{id}', name:'customer_update', methods: ['PUT'])]
+    #[IsGranted('access', 'customer', 'Client.e non trouvé.e', 404)]
+    public function updateCustomer(
+        Customer $currentCustomer,
+        PlatformRepository $platformRepository,
+        Request $request,
+    ): JsonResponse
     {
-        $cache->invalidateTags(['customersCache']);
+        $this->cache->invalidateTags(['customersCache']);
 
-        $updatedCustomer = $serializer->deserialize($request->getCOntent(), Customer::class, 'json', [AbstractNormalizer::OBJECT_TO_POPULATE => $currentCustomer]);
+        $updatedCustomer = $this->serializer->deserialize($request->getCOntent(), Customer::class, 'json', [AbstractNormalizer::OBJECT_TO_POPULATE => $currentCustomer]);
 
-        $errors = $validator->validate($updatedCustomer);
+        $errors = $this->validator->validate($updatedCustomer);
         if ($errors->count() > 0) {
-            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+            return new JsonResponse($this->serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
         }
         
         $updatedCustomer->setUpdatedAt(new \DateTimeImmutable());
@@ -100,11 +126,11 @@ class CustomerController extends AbstractController
         $idPlatform = $content['idPlatform'] ?? -1;
         $updatedCustomer->setPlatform($platformRepository->find($idPlatform));
 
-        $em->flush();
+        $this->em->flush();
 
-        $jsonCustomer = $serializer->serialize($updatedCustomer, 'json', ['groups' => 'getCustomers']);
+        $jsonCustomer = $this->serializer->serialize($updatedCustomer, 'json', ['groups' => 'getCustomers']);
 
-        $location = $urlGenerator->generate('detailCustomer', ['id' => $updatedCustomer->getId()], UrlGenerator::ABSOLUTE_URL);
+        $location = $this->router->generate('detailCustomer', ['id' => $updatedCustomer->getId()], UrlGenerator::ABSOLUTE_URL);
 
         return new JsonResponse($jsonCustomer, Response::HTTP_OK, ['Location' => $location], true);
     }
