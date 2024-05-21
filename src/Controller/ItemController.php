@@ -4,6 +4,9 @@ namespace App\Controller;
 
 use App\Entity\Item;
 use App\Repository\ItemRepository;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\{JsonResponse, Request, Response};
 use Symfony\Component\Routing\Attribute\Route;
@@ -23,6 +26,17 @@ class ItemController extends AbstractController
 
     #[Route('/api/items', name: 'item_show_all', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY', message: 'Vous n\'avez pas les droits suffisants pour consulter les produits.')]
+    #[OA\Tag(name: 'Produits')]
+    #[OA\Parameter(
+        name: 'page',
+        description: "Page demandée",
+        in: 'query'
+    )]
+    #[OA\Parameter(
+        name: 'limit',
+        description: "Nombre de produits par page",
+        in: 'query'
+    )]
     public function getAllItems(
         ItemRepository $itemRepository,
         Request $request,
@@ -57,6 +71,19 @@ class ItemController extends AbstractController
 
     #[Route('/api/items/{id}', name: 'item_show', methods: ['GET'])]
     #[IsGranted('IS_AUTHENTICATED_FULLY', message: 'Vous n\'avez pas les droits suffisants pour consulter ce produit.')]
+    #[OA\Tag(name: 'Produits')]
+    #[OA\Parameter(
+        name: 'id',
+        description: "Id du produit recherché.",
+        in: 'path'
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'Une réponse réussie!',
+        content: new Model(
+            type: Item::class
+        )
+    )]
     public function getDetailItem(Item $item): JsonResponse
     {
         $jsonItem = $this->serializer->serialize($item, 'json');
