@@ -24,6 +24,30 @@ nelmio_api_doc:
                                 application/json:
                                     schema:
                                         $ref: '#/components/schemas/Token'
+            /api/customers:
+                get:
+                    summary: récupérer une liste de client.es
+                post:
+                    summary: créer un.e client.e
+                    requestBody:
+                        content:
+                            application/json:
+                                schema:
+                                    $ref: '#/components/schemas/Customer'
+            /api/customers/{id}:
+                get:
+                    summary: récupérer un.e client.e
+                put:
+                    summary: modifier un.e client.e
+                delete:
+                    summary: supprimer un.e client.e
+            /api/items:
+                get:
+                    summary: récupérer tous les produits
+            /api/items/{id}:
+                get:
+                    summary: récupérer un produit
+
         components:
             schemas:
                 Token:
@@ -41,6 +65,22 @@ nelmio_api_doc:
                         password:
                             type: string
                             default: password
+                Customer:
+                    type: object
+                    properties:
+                        firstName:
+                            type: string
+                        name:
+                            type: string
+                        email:
+                            type: string
+                        postCode:
+                            type: string
+                        gender:
+                            type: string
+                        age:
+                            type: int
+
             securitySchemes:
                 bearerAuth:
                     type: apiKey

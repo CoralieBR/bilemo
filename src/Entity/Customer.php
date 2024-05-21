@@ -19,12 +19,12 @@ class Customer
     private ?int $id = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['getCustomers'])]
+    #[Groups(['getCustomers', 'create'])]
     #[Assert\Length(max: 255, maxMessage: 'Le prénom ne doit pas excéder {{ limit }} caractères de long.')]
     private ?string $firstName = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['getCustomers'])]
+    #[Groups(['getCustomers', 'create'])]
     #[Assert\Length(max: 255, maxMessage: 'Le nom ne doit pas excéder {{ limit }} caractères de long.')]
     private ?string $name = null;
 
