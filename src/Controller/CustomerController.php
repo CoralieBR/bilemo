@@ -5,6 +5,9 @@ namespace App\Controller;
 use App\Entity\Customer;
 use App\Repository\{CustomerRepository, PlatformRepository};
 use Doctrine\ORM\EntityManagerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\{JsonResponse, Request, Response};
 use Symfony\Component\Routing\Attribute\Route;
@@ -60,6 +63,11 @@ class CustomerController extends AbstractController
 
     #[Route('/api/customers/{id}', name: 'customer_show', methods: ['GET'])]
     #[IsGranted('view', 'customer', 'Client.e non trouvé.e', 404)]
+    #[OA\Parameter(
+        name: 'id',
+        description: "Id du client ou de la cliente recherché.e.",
+        in: 'path'
+    )]
     public function getDetailCustomer(Customer $customer): JsonResponse
     {
         $jsonCustomer = $this->serializer->serialize($customer, 'json', ['groups' =>'getCustomers']);
@@ -105,6 +113,21 @@ class CustomerController extends AbstractController
 
     #[Route('api/customers/{id}', name:'customer_update', methods: ['PUT'])]
     #[IsGranted('access', 'customer', 'Client.e non trouvé.e', 404)]
+    #[OA\Parameter(
+        name: 'id',
+        description: "Id du client ou de la cliente à modifier.",
+        in: 'path'
+    )]
+    #[OA\Parameter(
+        name: 'firstName',
+        description: "Prénom",
+        in: 'query'
+    )]
+    #[OA\Parameter(
+        name: 'name',
+        description: "Nom",
+        in: 'query'
+    )]
     public function updateCustomer(
         Customer $currentCustomer,
         PlatformRepository $platformRepository,
